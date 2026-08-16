@@ -224,7 +224,6 @@ function renderDetail(rows) {
         ${r.OTA版本 ? `<div>OTA 版本：<b>${esc(r.OTA版本)}</b></div>` : ""}
         ${r.安全补丁 ? `<div>安全补丁：<b>${esc(r.安全补丁)}</b></div>` : ""}
         ${r.地区 ? `<div>地区：<b>${esc(r.地区)}</b></div>` : ""}
-        ${r.来源 ? `<div>数据来源：<b>${esc(r.来源)}</b></div>` : ""}
         <div>链接：<b>${esc(r.链接)}</b></div>
       </div>
       <div class="d-link">
