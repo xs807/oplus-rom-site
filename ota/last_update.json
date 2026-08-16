@@ -1,103 +1,12 @@
 {
-  "生成时间": "2026-08-17 00:04:00",
-  "新增版本数": 54,
+  "生成时间": "2026-08-16 17:23:28",
+  "新增版本数": 7,
   "请求统计": {
-    "total": 4701,
-    "ok": 879,
-    "fail": 38,
-    "empty": 3784
+    "total": 4766,
+    "ok": 886,
+    "fail": 5,
+    "empty": 3875
   },
-  "失败机型数": 15,
-  "失败机型": [
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO A1 Pro 5G",
-      "型号": "PHQ110",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO A53",
-      "型号": "PECM20",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO Ace2",
-      "型号": "PDHM00",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO Find X3 Pro",
-      "型号": "PEEM00",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO Find X3",
-      "型号": "PEDM00",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO Find X8 Pro",
-      "型号": "PKC130",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO K12 Plus",
-      "型号": "PKS110",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO K13 Turbo",
-      "型号": "PLM110",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "OPPO",
-      "机型": "OPPO Reno9 5G",
-      "型号": "PHM110",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "一加",
-      "机型": "一加 Ace",
-      "型号": "PGKM10",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "一加",
-      "机型": "一加 Ace Pro / 一加 10T",
-      "型号": "PGP110",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "真我",
-      "机型": "真我10 Pro",
-      "型号": "RMX3663",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "真我",
-      "机型": "真我GT 2 Pro",
-      "型号": "RMX3300",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "真我",
-      "机型": "真我GT Neo 闪速版",
-      "型号": "RMX3350",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    },
-    {
-      "品牌": "真我",
-      "机型": "真我Q3 Pro 5G",
-      "型号": "RMX2205",
-      "错误": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 110: illegal multibyte sequence"
-    }
-  ]
+  "失败机型数": 0,
+  "失败机型": []
 }
