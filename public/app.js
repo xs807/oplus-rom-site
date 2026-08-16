@@ -9,7 +9,6 @@ const state = {
   model: "",         // 当前机型（机型+型号拼接作为 value）
   type: "",          // 当前包类型（卡刷包 / 线刷包）
   version: "",       // 当前版本
-  searchTimer: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -97,36 +96,54 @@ async function selectBrand(key, name) {
   $("stepType").classList.add("hidden");
   $("stepVersion").classList.add("hidden");
   $("crumbModel").innerHTML = `品牌：<b>${esc(name)}</b>`;
-  const sel = $("modelSelect");
-  sel.innerHTML = '<option value="">加载机型中…</option>';
+  const input = $("modelSearch");
+  input.value = "";
+  const box = $("modelResults");
+  box.innerHTML = '<div class="mr-empty">加载机型中…</div>';
   try {
     const d = await loadBrand(key);
-    sel.innerHTML = '<option value="">请选择机型…</option>';
-    d.机型.forEach((m) => {
-      const opt = document.createElement("option");
-      opt.value = `${m.机型}\u0001${m.型号}`;
-      opt.textContent = `${m.机型}（${m.型号}）· ${m.版本数} 版本`;
-      sel.appendChild(opt);
-    });
+    renderModelList("");
   } catch (e) {
-    sel.innerHTML = '<option value="">加载失败，请刷新重试</option>';
+    box.innerHTML = '<div class="mr-empty">加载失败，请刷新重试</div>';
     toast("机型加载失败：" + e.message);
   }
-  sel.scrollIntoView({ behavior: "smooth", block: "center" });
+  input.focus();
+  input.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function onModelChange() {
-  const sel = $("modelSelect");
-  state.model = sel.value;
+function renderModelList(filter) {
+  const q = String(filter || "").trim().toLowerCase();
+  const box = $("modelResults");
+  box.innerHTML = "";
+  const list = state.data[state.brand].机型.filter((m) => {
+    if (!q) return true;
+    return (
+      String(m.机型 || "").toLowerCase().includes(q) ||
+      String(m.型号 || "").toLowerCase().includes(q)
+    );
+  });
+  if (!list.length) {
+    box.innerHTML = '<div class="mr-empty">没有匹配的机型</div>';
+    return;
+  }
+  list.forEach((m) => {
+    const el = document.createElement("div");
+    el.className = "mr-item";
+    el.innerHTML = `
+      <div class="mr-name">${esc(m.机型)}（${esc(m.型号)}）</div>
+      <div class="mr-sub">${m.版本数} 个版本</div>`;
+    el.onclick = () => selectModel(m.机型, m.型号);
+    box.appendChild(el);
+  });
+}
+
+function selectModel(mName, mCode) {
+  state.model = `${mName}\u0001${mCode}`;
   state.type = "";
   state.version = "";
   $("detail").classList.add("hidden");
   $("stepType").classList.add("hidden");
   $("stepVersion").classList.add("hidden");
-  if (!state.model) {
-    return;
-  }
-  const [mName, mCode] = state.model.split("\u0001");
   renderTypeList();
   $("stepType").classList.remove("hidden");
   $("stepType").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -251,100 +268,9 @@ $("detailList").addEventListener("click", (e) => {
   );
 });
 
-/* ---------- 搜索 ---------- */
-async function doSearch(q) {
-  const box = $("searchResults");
-  q = q.trim().toLowerCase();
-  if (q.length < 2) {
-    box.classList.add("hidden");
-    return;
-  }
-  const brandKeys = Object.keys(state.meta.品牌 || {}).map((name) =>
-    (state.meta.品牌[name].文件 || state.meta.品牌[name].file).replace(/\.json$/, "")
-  );
-  try {
-    await Promise.all(brandKeys.map((k) => loadBrand(k)));
-  } catch (e) {
-    box.innerHTML = `<div class="sr-empty">数据加载失败：${esc(e.message)}</div>`;
-    box.classList.remove("hidden");
-    return;
-  }
-  const hits = [];
-  Object.keys(state.data).forEach((key) => {
-    const d = state.data[key];
-    d.版本.forEach((r) => {
-      const text = `${r.机型} ${r.型号} ${r.版本} ${r.OTA版本}`.toLowerCase();
-      if (text.includes(q)) hits.push({ key, name: d.品牌, r });
-    });
-  });
-  hits.sort((a, b) => (a.r.机型 + a.r.型号).localeCompare(b.r.机型 + b.r.型号, "zh"));
-  const top = hits.slice(0, 60);
-  box.innerHTML = top.length
-    ? top.map((h) => `
-        <div class="sr-item" data-key="${esc(h.key)}" data-model="${esc(h.r.机型)}\u0001${esc(h.r.型号)}" data-ver="${esc(h.r.版本 || h.r.OTA版本)}" data-type="${esc(h.r.类型 || "卡刷包")}">
-          <div class="sr-name">${esc(h.name)} · ${esc(h.r.机型)}（${esc(h.r.型号)}） ${badge(h.r.类型)}</div>
-          <div class="sr-sub">${esc(h.r.版本 || h.r.OTA版本)}${h.r.OTA版本 && h.r.OTA版本 !== h.r.版本 ? " · OTA " + esc(h.r.OTA版本) : ""}</div>
-        </div>`).join("")
-    : '<div class="sr-empty">没有匹配的结果</div>';
-  box.classList.remove("hidden");
-}
-
-$("searchResults").addEventListener("click", (e) => {
-  const item = e.target.closest(".sr-item");
-  if (!item) return;
-  $("searchResults").classList.add("hidden");
-  $("searchInput").value = "";
-  const key = item.dataset.key;
-  const model = item.dataset.model.replace(/\u0001/g, "\u0001");
-  const ver = item.dataset.ver;
-  const type = item.dataset.type || "卡刷包";
-  state.brand = key;
-  state.model = model;
-  state.type = type;
-  state.version = ver;
-  const name = state.data[key].品牌;
-  $("crumbModel").innerHTML = `品牌：<b>${esc(name)}</b>`;
-  $("stepModel").classList.remove("hidden");
-  const msel = $("modelSelect");
-  msel.innerHTML = '<option value="">请选择机型…</option>';
-  state.data[key].机型.forEach((m) => {
-    const opt = document.createElement("option");
-    opt.value = `${m.机型}\u0001${m.型号}`;
-    opt.textContent = `${m.机型}（${m.型号}）· ${m.版本数} 版本`;
-    msel.appendChild(opt);
-  });
-  msel.value = model;
-  $("stepType").classList.remove("hidden");
-  renderTypeList();
-  selectType(type);
-  const vsel = $("versionSelect");
-  vsel.value = ver;
-  const [mName, mCode] = model.split("\u0001");
-  const rows = state.data[key].版本.filter(
-    (r) =>
-      (r.机型 || "") === mName &&
-      (r.型号 || "") === mCode &&
-      (r.类型 || "卡刷包") === type &&
-      ((r.版本 || "") === ver || (r.OTA版本 || "") === ver)
-  );
-  renderDetail(rows);
-  $("detail").classList.remove("hidden");
-  $("detail").scrollIntoView({ behavior: "smooth", block: "start" });
+$("modelSearch").addEventListener("input", () => {
+  renderModelList($("modelSearch").value);
 });
-
-$("searchInput").addEventListener("input", () => {
-  clearTimeout(state.searchTimer);
-  const q = $("searchInput").value;
-  state.searchTimer = setTimeout(() => doSearch(q), 260);
-});
-$("searchInput").addEventListener("keydown", (e) => {
-  if (e.key === "Escape") $("searchResults").classList.add("hidden");
-});
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".search-card")) $("searchResults").classList.add("hidden");
-});
-
-$("modelSelect").addEventListener("change", onModelChange);
 $("versionSelect").addEventListener("change", onVersionChange);
 
 /* ---------- 初始化 ---------- */
