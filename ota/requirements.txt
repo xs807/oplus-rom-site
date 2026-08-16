@@ -1,2 +1,2 @@
-realme-ota
+git+https://github.com/R0rt1z2/realme-ota.git
 requests
