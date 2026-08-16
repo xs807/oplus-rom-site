@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>OPLUS ROM 查询 · OPPO / 一加 / 真我 国行固件版本库</title>
+  <meta name="description" content="OPPO、一加、真我国行 ROM 卡刷/线刷版本链接查询，数据库每天自动更新。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>OPLUS ROM 查询</h1>
+      <p class="sub">OPPO · 一加 · 真我 国行固件版本库（卡刷 / 线刷），数据每天自动更新</p>
+      <p class="meta" id="updatedAt">数据加载中…</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 搜索 -->
+    <section class="card search-card">
+      <input id="searchInput" type="search" placeholder="搜索机型 / 型号 / 版本，如：一加 13、PJZ110、15.0.0.701"
+             autocomplete="off" spellcheck="false">
+      <div id="searchResults" class="search-results hidden"></div>
+    </section>
+
+    <!-- 第一步：品牌 -->
+    <section id="stepBrand" class="step">
+      <h2><span class="num">1</span>选择品牌</h2>
+      <div id="brandList" class="brand-list">
+        <div class="loading">加载中…</div>
+      </div>
+    </section>
+
+    <!-- 第二步：机型 -->
+    <section id="stepModel" class="step hidden">
+      <h2><span class="num">2</span>选择机型</h2>
+      <p class="crumb" id="crumbModel"></p>
+      <select id="modelSelect" class="big-select">
+        <option value="">请选择机型…</option>
+      </select>
+    </section>
+
+    <!-- 第三步：版本 -->
+    <section id="stepVersion" class="step hidden">
+      <h2><span class="num">3</span>选择版本</h2>
+      <p class="crumb" id="crumbVersion"></p>
+      <select id="versionSelect" class="big-select">
+        <option value="">请选择版本…</option>
+      </select>
+    </section>
+
+    <!-- 详情 -->
+    <section id="detail" class="step hidden">
+      <h2><span class="num">4</span>下载链接</h2>
+      <div id="detailList"></div>
+    </section>
+
+    <footer class="foot">
+      <p>数据来源：官方 OTA 接口每日自动更新 · 链接有时效，失效请以工具内重新查询为准</p>
+      <p id="footBrands"></p>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
