@@ -7,6 +7,7 @@ const state = {
   brand: "",         // 当前品牌key
   brandName: "",     // 当前品牌显示名
   model: "",         // 当前机型（机型+型号拼接作为 value）
+  type: "",          // 当前包类型（卡刷包 / 线刷包）
   version: "",       // 当前版本
   searchTimer: null,
 };
@@ -89,9 +90,11 @@ async function selectBrand(key, name) {
   state.brand = key;
   state.brandName = name;
   state.model = "";
+  state.type = "";
   state.version = "";
   $("detail").classList.add("hidden");
   $("stepModel").classList.remove("hidden");
+  $("stepType").classList.add("hidden");
   $("stepVersion").classList.add("hidden");
   $("crumbModel").innerHTML = `品牌：<b>${esc(name)}</b>`;
   const sel = $("modelSelect");
@@ -115,30 +118,68 @@ async function selectBrand(key, name) {
 function onModelChange() {
   const sel = $("modelSelect");
   state.model = sel.value;
+  state.type = "";
   state.version = "";
-  $("stepVersion").classList.remove("hidden");
   $("detail").classList.add("hidden");
+  $("stepType").classList.add("hidden");
+  $("stepVersion").classList.add("hidden");
   if (!state.model) {
-    $("stepVersion").classList.add("hidden");
     return;
   }
   const [mName, mCode] = state.model.split("\u0001");
-  $("crumbVersion").innerHTML =
-    `品牌：<b>${esc(state.brandName || "")}</b> · 机型：<b>${esc(mName)}（${esc(mCode)}）</b>`;
-  const d = state.data[state.brand];
-  const vsel = $("versionSelect");
-  vsel.innerHTML = '<option value="">请选择版本…</option>';
-  const rows = d.版本.filter(
+  renderTypeList();
+  $("stepType").classList.remove("hidden");
+  $("stepType").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function currentRows() {
+  const [mName, mCode] = state.model.split("\u0001");
+  return state.data[state.brand].版本.filter(
     (r) => (r.机型 || "") === mName && (r.型号 || "") === mCode
   );
+}
+
+function renderTypeList() {
+  const [mName, mCode] = state.model.split("\u0001");
+  $("crumbType").innerHTML =
+    `品牌：<b>${esc(state.brandName || "")}</b> · 机型：<b>${esc(mName)}（${esc(mCode)}）</b>`;
+  const count = {};
+  currentRows().forEach((r) => {
+    const t = r.类型 || "卡刷包";
+    count[t] = (count[t] || 0) + 1;
+  });
+  const box = $("typeList");
+  box.innerHTML = "";
+  ["卡刷包", "线刷包"].forEach((t) => {
+    const el = document.createElement("div");
+    const n = count[t] || 0;
+    el.className = "type-card" + (n ? "" : " disabled") + (state.type === t ? " selected" : "");
+    el.innerHTML = `<div class="t-name">${badge(t)}</div><div class="t-stat">${n} 个版本</div>`;
+    if (n) el.onclick = () => selectType(t);
+    box.appendChild(el);
+  });
+}
+
+function selectType(type) {
+  state.type = type;
+  state.version = "";
+  $("detail").classList.add("hidden");
+  $("stepVersion").classList.remove("hidden");
+  const [mName, mCode] = state.model.split("\u0001");
+  $("crumbVersion").innerHTML =
+    `品牌：<b>${esc(state.brandName || "")}</b> · 机型：<b>${esc(mName)}（${esc(mCode)}）</b> · 类型：<b>${esc(type)}</b>`;
+  const vsel = $("versionSelect");
+  vsel.innerHTML = '<option value="">请选择版本…</option>';
   const seen = new Map();
-  rows.forEach((r) => {
+  currentRows()
+    .filter((r) => (r.类型 || "卡刷包") === type)
+    .forEach((r) => {
     const ver = r.版本 || r.OTA版本 || "";
     if (!ver || seen.has(ver)) return;
     seen.set(ver, true);
     const opt = document.createElement("option");
     opt.value = ver;
-    opt.textContent = `${ver} · ${r.类型 || ""}`;
+    opt.textContent = ver;
     vsel.appendChild(opt);
   });
   vsel.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -156,6 +197,7 @@ function onVersionChange() {
     (r) =>
       (r.机型 || "") === mName &&
       (r.型号 || "") === mCode &&
+      (r.类型 || "卡刷包") === state.type &&
       ((r.版本 || "") === state.version || (r.OTA版本 || "") === state.version)
   );
   renderDetail(rows);
@@ -240,7 +282,7 @@ async function doSearch(q) {
   const top = hits.slice(0, 60);
   box.innerHTML = top.length
     ? top.map((h) => `
-        <div class="sr-item" data-key="${esc(h.key)}" data-model="${esc(h.r.机型)}\u0001${esc(h.r.型号)}" data-ver="${esc(h.r.版本 || h.r.OTA版本)}">
+        <div class="sr-item" data-key="${esc(h.key)}" data-model="${esc(h.r.机型)}\u0001${esc(h.r.型号)}" data-ver="${esc(h.r.版本 || h.r.OTA版本)}" data-type="${esc(h.r.类型 || "卡刷包")}">
           <div class="sr-name">${esc(h.name)} · ${esc(h.r.机型)}（${esc(h.r.型号)}） ${badge(h.r.类型)}</div>
           <div class="sr-sub">${esc(h.r.版本 || h.r.OTA版本)}${h.r.OTA版本 && h.r.OTA版本 !== h.r.版本 ? " · OTA " + esc(h.r.OTA版本) : ""}</div>
         </div>`).join("")
@@ -256,8 +298,10 @@ $("searchResults").addEventListener("click", (e) => {
   const key = item.dataset.key;
   const model = item.dataset.model.replace(/\u0001/g, "\u0001");
   const ver = item.dataset.ver;
+  const type = item.dataset.type || "卡刷包";
   state.brand = key;
   state.model = model;
+  state.type = type;
   state.version = ver;
   const name = state.data[key].品牌;
   $("crumbModel").innerHTML = `品牌：<b>${esc(name)}</b>`;
@@ -271,29 +315,17 @@ $("searchResults").addEventListener("click", (e) => {
     msel.appendChild(opt);
   });
   msel.value = model;
-  $("stepVersion").classList.remove("hidden");
-  const [mName, mCode] = model.split("\u0001");
-  $("crumbVersion").innerHTML =
-    `品牌：<b>${esc(name)}</b> · 机型：<b>${esc(mName)}（${esc(mCode)}）</b>`;
+  $("stepType").classList.remove("hidden");
+  renderTypeList();
+  selectType(type);
   const vsel = $("versionSelect");
-  vsel.innerHTML = '<option value="">请选择版本…</option>';
-  const seen = new Set();
-  state.data[key].版本
-    .filter((r) => (r.机型 || "") === mName && (r.型号 || "") === mCode)
-    .forEach((r) => {
-      const v = r.版本 || r.OTA版本 || "";
-      if (!v || seen.has(v)) return;
-      seen.add(v);
-      const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = `${v} · ${r.类型 || ""}`;
-      vsel.appendChild(opt);
-    });
   vsel.value = ver;
+  const [mName, mCode] = model.split("\u0001");
   const rows = state.data[key].版本.filter(
     (r) =>
       (r.机型 || "") === mName &&
       (r.型号 || "") === mCode &&
+      (r.类型 || "卡刷包") === type &&
       ((r.版本 || "") === ver || (r.OTA版本 || "") === ver)
   );
   renderDetail(rows);
