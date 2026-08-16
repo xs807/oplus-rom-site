@@ -54,7 +54,7 @@ async function loadJSON(url) {
 
 async function loadBrand(key) {
   if (state.data[key]) return state.data[key];
-  const meta = state.meta.brand || {};
+  const meta = state.meta.品牌 || {};
   const info = Object.values(meta).find((m) => m && m.file === key + ".json");
   const file = info ? info.file : key + ".json";
   state.data[key] = await loadJSON(`data/${file}`);
@@ -63,7 +63,7 @@ async function loadBrand(key) {
 
 /* ---------- 渲染 ---------- */
 function renderBrands() {
-  const brands = state.meta.brand || {};
+  const brands = state.meta.品牌 || {};
   const list = $("brandList");
   list.innerHTML = "";
   const order = ["OPPO", "一加", "真我"];
@@ -216,8 +216,8 @@ async function doSearch(q) {
     box.classList.add("hidden");
     return;
   }
-  const brandKeys = Object.keys(state.meta.brand || {}).map((name) =>
-    state.meta.brand[name].file.replace(/\.json$/, "")
+  const brandKeys = Object.keys(state.meta.品牌 || {}).map((name) =>
+    state.meta.品牌[name].file.replace(/\.json$/, "")
   );
   try {
     await Promise.all(brandKeys.map((k) => loadBrand(k)));
