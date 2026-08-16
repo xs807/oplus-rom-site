@@ -43,6 +43,11 @@ jobs:
           project-name: oplus-rom-site
           build-path: ./public
 
+      - name: Setup Node.js 22 (wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Deploy to Cloudflare Pages (国内主力)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
