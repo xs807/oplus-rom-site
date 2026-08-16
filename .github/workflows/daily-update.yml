@@ -36,6 +36,13 @@ jobs:
       - name: Build site data
         run: python tools/build_site_data.py
 
+      - name: Deploy to EdgeOne Pages (国内)
+        uses: TencentEdgeOne/edgeone-pages-action@v1
+        with:
+          token: ${{ secrets.EDGEONE_API_TOKEN }}
+          project-name: oplus-rom-site
+          build-path: ./public
+
       - name: Commit & push
         run: |
           git config user.name "ota-bot"
