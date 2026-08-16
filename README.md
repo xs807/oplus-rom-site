@@ -20,11 +20,11 @@ OPPO / 一加 / 真我 国行 ROM（卡刷包 / 线刷包）版本链接查询�
 ├── ota/
 │   ├── oplus_query.py       # OTA 查询核心（realme-ota 官方接口）
 │   ├── update_daily.py      # 每日更新脚本（种子+链式查询、合并去重）
+│   ├── requirements.txt     # OTA 更新依赖（仅 Actions 使用，不影响 Vercel 静态识别）
 │   └── last_update.json     # 最近一次更新统计（运行后生成）
 ├── tools/
 │   └── build_site_data.py   # 数据库 -> 网站分片数据
 ├── .github/workflows/daily-update.yml  # 每日自动更新
-├── requirements.txt
 └── vercel.json
 ```
 
@@ -60,7 +60,7 @@ OPPO / 一加 / 真我 国行 ROM（卡刷包 / 线刷包）版本链接查询�
 ## 本地运行
 
 ```bash
-pip install -r requirements.txt
+pip install -r ota/requirements.txt
 
 # 1) 每日更新（查询 OTA 并合并新版本）
 python ota/update_daily.py
