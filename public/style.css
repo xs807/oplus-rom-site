@@ -115,6 +115,22 @@ body {
 .brand-card .b-name { font-size: 22px; font-weight: 700; }
 .brand-card .b-stat { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
 
+.type-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.type-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .12s, border-color .12s, background .12s;
+}
+.type-card:hover { transform: translateY(-2px); border-color: var(--acc); background: var(--card2); }
+.type-card.disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+.type-card.selected { border-color: var(--acc); background: linear-gradient(135deg, rgba(79,124,255,.22), rgba(124,92,255,.18)); }
+.type-card .t-name { font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.type-card .t-stat { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+
 .big-select {
   width: 100%;
   background: var(--card);
