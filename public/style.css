@@ -187,6 +187,67 @@ body {
 .btn:hover { border-color: var(--acc); }
 .btn.primary { background: linear-gradient(135deg, var(--acc), var(--acc2)); border: none; color: #fff; }
 
+/* ColorOS16 滑动确认 */
+.c16-box { margin-top: 12px; }
+.slider {
+  position: relative;
+  height: 44px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.slider.locked { cursor: not-allowed; opacity: .7; }
+.slider-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: linear-gradient(135deg, rgba(79,124,255,.45), rgba(124,92,255,.35));
+  border-radius: 999px;
+}
+.slider-thumb {
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--acc), var(--acc2));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  z-index: 2;
+}
+.slider-text {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  font-size: 13.5px;
+  pointer-events: none;
+  z-index: 1;
+}
+.slider.done .slider-thumb { left: calc(100% - 42px); }
+.slider.done .slider-fill { width: 100%; }
+.slider.done .slider-text { color: var(--ok); }
+
+.c16-result {
+  margin-top: 10px;
+  background: var(--card2);
+  border: 1px solid var(--ok);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.c16-result .c16-url {
+  font-size: 12.5px;
+  color: var(--muted);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+.c16-result .c16-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 .foot {
   margin: 40px 0 30px;
   color: var(--muted);
