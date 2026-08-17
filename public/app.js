@@ -232,6 +232,7 @@ function renderDetail(rows) {
   rows.forEach((r) => {
     const item = document.createElement("div");
     item.className = "detail-item";
+    const isC16 = /component-ota-cn\.allawntech\.com|gauss-compota/i.test(r.链接 || "");
     item.innerHTML = `
       <div class="d-head">
         ${badge(r.类型)}
@@ -243,18 +244,111 @@ function renderDetail(rows) {
         ${r.地区 ? `<div>地区：<b>${esc(r.地区)}</b></div>` : ""}
         <div>链接：<b>${esc(r.链接)}</b></div>
       </div>
+      ${isC16 ? `
+      <div class="c16-box">
+        <div class="slider" data-c16="${esc(r.链接)}">
+          <div class="slider-fill"></div>
+          <div class="slider-thumb">→</div>
+          <div class="slider-text">滑动确认后获取 ColorOS16 链接</div>
+        </div>
+        <div class="c16-result hidden">
+          <div class="c16-url"></div>
+          <div class="c16-actions">
+            <button class="btn primary" data-act="copy-final">复制最终链接</button>
+            <a class="btn" data-act="open-final" href="#" target="_blank" rel="noopener">打开最终链接</a>
+          </div>
+        </div>
+      </div>`
+      : `
       <div class="d-link">
         <button class="btn primary" data-act="copy" data-link="${esc(r.链接)}">复制链接</button>
         <a class="btn" href="${esc(r.链接)}" target="_blank" rel="noopener">打开链接</a>
-      </div>`;
+      </div>`}`;
     box.appendChild(item);
   });
 }
 
+/* ---------- ColorOS16 滑动确认 ---------- */
+let sliderDrag = null;
+
+$("detailList").addEventListener("pointerdown", (e) => {
+  const s = e.target.closest(".slider");
+  if (!s || s.classList.contains("locked") || s.classList.contains("done")) return;
+  e.preventDefault();
+  sliderDrag = { slider: s };
+  try { s.setPointerCapture(e.pointerId); } catch {}
+});
+
+$("detailList").addEventListener("pointermove", (e) => {
+  if (!sliderDrag) return;
+  const s = sliderDrag.slider;
+  const rect = s.getBoundingClientRect();
+  const max = Math.max(1, rect.width - 42);
+  const x = Math.min(max, Math.max(0, e.clientX - rect.left - 2));
+  s.querySelector(".slider-thumb").style.left = x + "px";
+  s.querySelector(".slider-fill").style.width = (x / max * 100) + "%";
+});
+
+$("detailList").addEventListener("pointerup", (e) => {
+  if (!sliderDrag) return;
+  const s = sliderDrag.slider;
+  sliderDrag = null;
+  const rect = s.getBoundingClientRect();
+  const max = Math.max(1, rect.width - 42);
+  const x = parseFloat(s.querySelector(".slider-thumb").style.left) || 0;
+  if (x >= max * 0.96) {
+    confirmC16(s);
+  } else {
+    s.querySelector(".slider-thumb").style.left = "";
+    s.querySelector(".slider-fill").style.width = "0%";
+  }
+});
+
+function resetSlider(s) {
+  s.classList.remove("locked", "done");
+  s.querySelector(".slider-thumb").style.left = "";
+  s.querySelector(".slider-fill").style.width = "0%";
+  s.querySelector(".slider-text").textContent = "滑动确认后获取 ColorOS16 链接";
+}
+
+async function confirmC16(s) {
+  const link = s.dataset.c16;
+  s.classList.add("locked", "done");
+  s.querySelector(".slider-text").textContent = "正在重定向获取…";
+  const box = s.closest(".c16-box");
+  const result = box.querySelector(".c16-result");
+  const urlEl = result.querySelector(".c16-url");
+  const openA = result.querySelector('[data-act="open-final"]');
+  try {
+    const r = await fetch("/api/c16-redirect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: link }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (data.ok && data.location) {
+      urlEl.textContent = data.location;
+      openA.href = data.location;
+      result.classList.remove("hidden");
+      s.querySelector(".slider-text").textContent = "✅ 已获取，签名有时效请尽快使用";
+    } else {
+      resetSlider(s);
+      s.querySelector(".slider-text").textContent =
+        "获取失败，请重试（" + (data.error || data.status || "未知错误") + "）";
+      toast("ColorOS16 链接获取失败");
+    }
+  } catch (err) {
+    resetSlider(s);
+    s.querySelector(".slider-text").textContent = "获取失败，请检查网络后重试";
+    toast("ColorOS16 链接获取失败：" + err.message);
+  }
+}
+
 $("detailList").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-act=copy]");
+  const btn = e.target.closest('[data-act="copy"], [data-act="copy-final"]');
   if (!btn) return;
-  const link = btn.getAttribute("data-link");
+  const link = btn.dataset.link || (btn.closest(".c16-result") || {}).querySelector?.(".c16-url")?.textContent;
+  if (!link) return;
   navigator.clipboard?.writeText(link).then(
     () => toast("链接已复制"),
     () => {
