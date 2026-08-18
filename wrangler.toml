@@ -1,0 +1,11 @@
+name = "oplus-rom-site"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
+
+[[kv_namespaces]]
+binding = "USERS_KV"
+id = "8f8892fd9545436c9c7b04f965c91db3"
+
+[vars]
+ADMIN_USER = "admin"
+ADMIN_PASS = "XsRoot#2026#Admin"
