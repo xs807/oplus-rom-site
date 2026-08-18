@@ -87,6 +87,17 @@
     </div>
 
     <div class="card">
+      <h2>数据库更新（网站 /api/db）</h2>
+      <div class="row">
+        <div><label>选择 OPLUS全部版本信息_CN_标准格式.json</label><input type="file" id="dbFile" accept=".json"></div>
+      </div>
+      <div style="margin-top:14px">
+        <button id="dbUploadBtn" class="btn-primary">上传数据库（覆盖网站接口数据）</button>
+        <div id="dbMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>账户列表</h2>
       <table>
         <thead>
@@ -205,6 +216,25 @@ document.getElementById('createBtn').onclick = async () => {
     document.getElementById('newPass').value = '';
     refresh();
   }
+};
+
+document.getElementById('dbUploadBtn').onclick = async () => {
+  const file = document.getElementById('dbFile').files[0];
+  const msg = document.getElementById('dbMsg');
+  if (!file) { msg.textContent = '请先选择数据库 JSON 文件'; msg.className = 'msg err'; return; }
+  const text = await file.text();
+  let base64 = '';
+  try {
+    base64 = btoa(unescape(encodeURIComponent(text)));
+  } catch (e) {
+    msg.textContent = '文件读取失败：' + e.message; msg.className = 'msg err'; return;
+  }
+  const btn = document.getElementById('dbUploadBtn');
+  btn.disabled = true; btn.textContent = '上传中…';
+  const { status, data } = await call('/api/admin/db', { admin_user: adminUser, admin_token: token, base64 });
+  btn.disabled = false; btn.textContent = '上传数据库（覆盖网站接口数据）';
+  msg.textContent = data.ok ? ('已上传：' + data.entries + ' 条（客户端下次启动自动从网站获取）') : (data.error || '上传失败');
+  msg.className = 'msg ' + (data.ok ? 'ok' : 'err');
 };
 
 if (token && adminUser) {

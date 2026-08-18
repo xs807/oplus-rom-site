@@ -36,6 +36,23 @@ jobs:
       - name: Build site data
         run: python tools/build_site_data.py
 
+      - name: Upload database to KV (网站 /api/db)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python - <<'EOF'
+          import os, urllib.request
+          ns = "8f8892fd9545436c9c7b04f965c91db3"
+          data = open("database/OPLUS全部版本信息_CN_标准格式.json", encoding="utf-8-sig").read()
+          url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/storage/kv/namespaces/{ns}/values/xsroot_db_v1"
+          req = urllib.request.Request(url, data=data.encode("utf-8"), method="PUT")
+          req.add_header("Authorization", "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"])
+          req.add_header("Content-Type", "application/json; charset=utf-8")
+          with urllib.request.urlopen(req, timeout=120) as r:
+              print("KV upload:", r.status)
+          EOF
+
       - name: Deploy to EdgeOne Pages (国内)
         uses: TencentEdgeOne/edgeone-pages-action@v1
         with:
