@@ -45,6 +45,7 @@ except Exception:
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(BASE, "database", "OPLUS全部版本信息_CN_标准格式.json")
+SEEDS_FILE = os.path.join(BASE, "ota", "ota_seeds.json")
 LAST = os.path.join(BASE, "ota", "last_update.json")
 
 THREADS = int(os.environ.get("OTA_THREADS", "8"))
@@ -74,7 +75,31 @@ def load_db():
 
 
 def build_seeds(rows):
-    """按（品牌,机型,型号）分组 OTA 版本，剔除 CPH 与空版本。"""
+    """优先使用 ota/ota_seeds.json（全部机型每个版本的 OTA版本）；
+    文件不存在/格式错误时回退：从数据库按（品牌,机型,型号）分组 OTA 版本，剔除 CPH 与空版本。"""
+    if os.path.exists(SEEDS_FILE):
+        try:
+            with open(SEEDS_FILE, encoding="utf-8-sig") as f:
+                sdata = json.load(f)
+            items = sdata.get("机型") if isinstance(sdata, dict) else sdata
+            out = []
+            for it in items or []:
+                vers = [v for v in (it.get("OTA版本") or []) if str(v).strip()]
+                if not vers:
+                    continue
+                out.append({
+                    "品牌": str(it.get("品牌") or "").strip() or "未知",
+                    "机型": str(it.get("机型") or "").strip() or str(it.get("型号") or ""),
+                    "型号": str(it.get("型号") or "").strip().upper() or "",
+                    "版本": vers,
+                })
+            if out:
+                out.sort(key=lambda x: (x["品牌"], x["机型"], x["型号"]))
+                print(f"使用 OTA 种子文件: {SEEDS_FILE}（{len(out)} 个机型）", flush=True)
+                return out
+        except Exception as e:
+            print(f"种子文件读取失败，回退数据库: {e}", flush=True)
+    # 回退：从数据库提取
     groups = defaultdict(lambda: {"品牌": "", "机型": "", "型号": "", "版本": set()})
     for r in rows:
         ota = (r.get("OTA版本") or "").strip()
@@ -160,6 +185,63 @@ def chain_query(dev):
     return found
 
 
+def add_new_to_seeds(new_rows):
+    """每天 OTA 查询到的新版本，并入 ota_seeds.json 对应机型分组（去重、按时间戳降序）。"""
+    if not new_rows or not os.path.exists(SEEDS_FILE):
+        return
+    try:
+        with open(SEEDS_FILE, encoding="utf-8-sig") as f:
+            sdata = json.load(f)
+        items = sdata.get("机型") if isinstance(sdata, dict) else sdata
+        if not isinstance(items, list):
+            items = []
+        by_key = {}
+        for it in items:
+            by_key[(
+                str(it.get("品牌") or "").strip(),
+                str(it.get("机型") or "").strip(),
+                str(it.get("型号") or "").strip().upper(),
+            )] = it
+        added = 0
+        for r in new_rows:
+            ota = str(r.get("OTA版本") or "").strip()
+            if not ota:
+                continue
+            key = (
+                str(r.get("品牌") or "").strip(),
+                str(r.get("机型") or "").strip(),
+                str(r.get("型号") or "").strip().upper(),
+            )
+            it = by_key.get(key)
+            if it is None:
+                it = {
+                    "品牌": key[0],
+                    "机型": key[1],
+                    "型号": key[2],
+                    "OTA版本": [],
+                }
+                by_key[key] = it
+                items.append(it)
+            vers = it.setdefault("OTA版本", [])
+            if ota not in vers:
+                vers.append(ota)
+                added += 1
+        for it in items:
+            it["OTA版本"] = sorted(it.get("OTA版本") or [], key=version_ts, reverse=True)
+        if isinstance(sdata, dict):
+            sdata["机型"] = items
+            sdata["生成时间"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            sdata["统计"] = {
+                "机型数": len(items),
+                "OTA版本总数": sum(len(it.get("OTA版本") or []) for it in items),
+            }
+        with open(SEEDS_FILE, "w", encoding="utf-8-sig") as f:
+            json.dump(sdata, f, ensure_ascii=False, indent=1)
+        print(f"种子文件已更新: 新增 {added} 个版本 -> {SEEDS_FILE}", flush=True)
+    except Exception as e:
+        print(f"种子文件更新失败: {e}", flush=True)
+
+
 def main():
     print(f"加载数据库: {DB}", flush=True)
     rows = load_db()
@@ -235,6 +317,29 @@ def main():
     print(f"\n完成: {len(seeds)} 机型，新增 {len(new_rows)} 条，耗时 {dt:.0f}s", flush=True)
     print(f"请求统计: {stats}", flush=True)
 
+    # 云提取回填：新版本缺失 版本名/OTA版本/安全补丁 时，远程 Range 读取包内元数据补齐
+    if new_rows and os.environ.get("OTA_CLOUD_EXTRACT", "1") != "0":
+        try:
+            from cloud_extract import fill_new_rows
+
+            ok_n, failed_n = fill_new_rows(
+                new_rows,
+                threads=int(os.environ.get("OTA_CLOUD_THREADS", "8")),
+                timeout=45,
+            )
+            print(
+                f"云提取回填: 成功 {ok_n} 条，未提取 {len(failed_n)} 条",
+                flush=True,
+            )
+            if failed_n:
+                print(
+                    "云提取未成功示例: "
+                    + json.dumps(failed_n[:5], ensure_ascii=False),
+                    flush=True,
+                )
+        except Exception as e:
+            print(f"云提取回填失败（不影响入库）: {e}", flush=True)
+
     if new_rows:
         rows.extend(new_rows)
         payload = {
@@ -245,6 +350,7 @@ def main():
         with open(DB, "w", encoding="utf-8-sig") as f:
             json.dump(payload, f, ensure_ascii=False, indent=1)
         print(f"数据库已更新: {DB}（共 {len(rows)} 条）", flush=True)
+        add_new_to_seeds(new_rows)
     else:
         print("本次无新增版本", flush=True)
 
