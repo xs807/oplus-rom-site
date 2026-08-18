@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XS ROOT 授权后台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif; background: #F4F6FB; color: #1F2430; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  header h1 { font-size: 22px; }
+  header .sub { color: #8A93A6; font-size: 13px; margin-top: 4px; }
+  .card { background: #fff; border: 1px solid #E8EBF2; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin-bottom: 14px; }
+  label { display: block; font-size: 12px; color: #8A93A6; margin: 10px 0 4px; }
+  input, select { width: 100%; height: 36px; border: 1px solid #DDE2EC; border-radius: 8px; padding: 0 10px; font-size: 13px; }
+  button { height: 36px; border: 0; border-radius: 8px; padding: 0 16px; font-size: 13px; cursor: pointer; }
+  .btn-primary { background: #2F6BFF; color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #1E56E0; }
+  .btn-ghost { background: #F0F3FA; color: #1F2430; }
+  .btn-danger { background: #FDEBEC; color: #E5484D; }
+  .btn-success { background: #E6F7F1; color: #21A67A; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #EFF1F6; }
+  th { color: #8A93A6; font-weight: 500; font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 12px; }
+  .badge.ok { background: #E6F7F1; color: #21A67A; }
+  .badge.ban { background: #FDEBEC; color: #E5484D; }
+  .badge.admin { background: #EDF2FF; color: #2F6BFF; }
+  .msg { font-size: 12px; margin-top: 8px; }
+  .msg.err { color: #E5484D; }
+  .msg.ok { color: #21A67A; }
+  .hidden { display: none; }
+  .stats { display: flex; gap: 14px; }
+  .stat { flex: 1; background: #F8FAFF; border: 1px solid #E8EBF2; border-radius: 10px; padding: 12px; text-align: center; }
+  .stat b { display: block; font-size: 22px; }
+  .stat span { font-size: 12px; color: #8A93A6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>XS ROOT 授权后台</h1>
+      <div class="sub">账户管理 · 创建 / 封禁 / 解封 · 数据存于 Cloudflare KV</div>
+    </div>
+    <button id="logoutBtn" class="btn-ghost hidden">退出登录</button>
+  </header>
+
+  <!-- 登录 -->
+  <div id="loginCard" class="card">
+    <h2>管理员登录</h2>
+    <div class="row">
+      <div><label>账户</label><input id="adminUser" autocomplete="username"></div>
+      <div><label>密码</label><input id="adminPass" type="password" autocomplete="current-password"></div>
+    </div>
+    <div style="margin-top:14px">
+      <button id="loginBtn" class="btn-primary">登 录</button>
+      <div id="loginMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 管理面板 -->
+  <div id="panel" class="hidden">
+    <div class="stats" style="margin-bottom:16px">
+      <div class="stat"><b id="statTotal">0</b><span>账户总数</span></div>
+      <div class="stat"><b id="statBan">0</b><span>已封禁</span></div>
+      <div class="stat"><b id="statAdmin">0</b><span>管理员</span></div>
+    </div>
+
+    <div class="card">
+      <h2>创建账户</h2>
+      <div class="row">
+        <div><label>用户名（至少2位）</label><input id="newUser"></div>
+        <div><label>密码（至少6位）</label><input id="newPass" type="password"></div>
+        <div style="flex:0 0 140px"><label>类型</label>
+          <select id="newAdmin"><option value="0">普通用户</option><option value="1">管理员</option></select>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button id="createBtn" class="btn-primary">创建账户</button>
+        <div id="createMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>账户列表</h2>
+      <table>
+        <thead>
+          <tr><th>账户</th><th>类型</th><th>状态</th><th>创建时间</th><th>最后登录</th><th>封禁原因</th><th>操作</th></tr>
+        </thead>
+        <tbody id="userRows"></tbody>
+      </table>
+      <div id="listMsg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+let token = sessionStorage.getItem('xsroot_admin_token') || '';
+let adminUser = sessionStorage.getItem('xsroot_admin_user') || '';
+
+async function call(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let data = {};
+  try { data = await r.json(); } catch (e) {}
+  return { status: r.status, data };
+}
+
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleString('zh-CN', { hour12: false });
+}
+
+async function refresh() {
+  const { status, data } = await call('/api/admin/list', { admin_user: adminUser, admin_token: token });
+  if (status !== 200 || !data.ok) { showListMsg('加载失败：' + (data.error || status), true); return; }
+  const users = data.users || [];
+  document.getElementById('statTotal').textContent = users.length;
+  document.getElementById('statBan').textContent = users.filter(u => u.banned).length;
+  document.getElementById('statAdmin').textContent = users.filter(u => u.is_admin).length;
+  const tbody = document.getElementById('userRows');
+  tbody.innerHTML = '';
+  for (const u of users) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><b>' + esc(u.username) + '</b>' + (u.username === adminUser ? '（当前）' : '') + '</td>' +
+      '<td>' + (u.is_admin ? '<span class="badge admin">管理员</span>' : '<span class="badge">普通</span>') + '</td>' +
+      '<td>' + (u.banned ? '<span class="badge ban">已封禁</span>' : '<span class="badge ok">正常</span>') + '</td>' +
+      '<td>' + fmt(u.created) + '</td>' +
+      '<td>' + fmt(u.last_login) + '</td>' +
+      '<td>' + esc(u.ban_reason || '') + '</td>' +
+      '<td>' + (u.banned
+        ? '<button class="btn-success" data-act="unban" data-u="' + esc(u.username) + '">解封</button>'
+        : '<button class="btn-danger" data-act="ban" data-u="' + esc(u.username) + '">封禁</button>') + '</td>';
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.onclick = () => toggleBan(btn.dataset.act, btn.dataset.u);
+  });
+}
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showListMsg(msg, err) {
+  const el = document.getElementById('listMsg');
+  el.textContent = msg;
+  el.className = 'msg ' + (err ? 'err' : 'ok');
+}
+
+async function toggleBan(act, username) {
+  const { status, data } = await call('/api/admin/' + act, { admin_user: adminUser, admin_token: token, username });
+  showListMsg(data.ok ? (act === 'ban' ? '已封禁 ' + username : '已解封 ' + username) : (data.error || '失败'), !data.ok);
+  if (data.ok) refresh();
+}
+
+document.getElementById('loginBtn').onclick = async () => {
+  const user = document.getElementById('adminUser').value.trim();
+  const pass = document.getElementById('adminPass').value;
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = ''; msg.className = 'msg';
+  if (!user || !pass) { msg.textContent = '请输入账户和密码'; msg.className = 'msg err'; return; }
+  const { status, data } = await call('/api/login', { username: user, password: pass });
+  if (status !== 200 || !data.ok) {
+    msg.textContent = data.error || '登录失败'; msg.className = 'msg err'; return;
+  }
+  if (!data.is_admin) {
+    msg.textContent = '该账户不是管理员，无法进入后台'; msg.className = 'msg err'; return;
+  }
+  token = data.token; adminUser = data.username;
+  sessionStorage.setItem('xsroot_admin_token', token);
+  sessionStorage.setItem('xsroot_admin_user', adminUser);
+  document.getElementById('loginCard').classList.add('hidden');
+  document.getElementById('panel').classList.remove('hidden');
+  document.getElementById('logoutBtn').classList.remove('hidden');
+  refresh();
+};
+
+document.getElementById('logoutBtn').onclick = () => {
+  token = ''; sessionStorage.clear();
+  location.reload();
+};
+
+document.getElementById('createBtn').onclick = async () => {
+  const user = document.getElementById('newUser').value.trim();
+  const pass = document.getElementById('newPass').value;
+  const isAdmin = document.getElementById('newAdmin').value === '1';
+  const msg = document.getElementById('createMsg');
+  const { status, data } = await call('/api/admin/create', { admin_user: adminUser, admin_token: token, username: user, password: pass, is_admin: isAdmin });
+  msg.textContent = data.ok ? '已创建 ' + user : (data.error || '创建失败');
+  msg.className = 'msg ' + (data.ok ? 'ok' : 'err');
+  if (data.ok) {
+    document.getElementById('newUser').value = '';
+    document.getElementById('newPass').value = '';
+    refresh();
+  }
+};
+
+if (token && adminUser) {
+  (async () => {
+    const { status, data } = await call('/api/admin/list', { admin_user: adminUser, admin_token: token });
+    if (status === 200 && data.ok) {
+      document.getElementById('loginCard').classList.add('hidden');
+      document.getElementById('panel').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+      refresh();
+    } else {
+      sessionStorage.clear(); token = '';
+    }
+  })();
+}
+</script>
+</body>
+</html>
