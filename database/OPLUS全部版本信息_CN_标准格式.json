@@ -1,5 +1,5 @@
 ﻿{
- "生成时间": "2026-08-19 22:22:06",
+ "生成时间": "2026-08-20 22:28:26",
  "说明": "OPLUS 全部版本信息（CN 国行）标准格式，每日 OTA 自动更新",
  "结果": [
   {
@@ -100476,6 +100476,20 @@
    "安全补丁": "2026-07-01",
    "地区": "CN",
    "链接": "https://component-ota-cn.allawntech.com/downloadCheck?c=b579a48a82b7eb9bcde5aee0d90d7fd8&p=a6c78fdd3752888b39cedfab119c33629679a8b21f6e54f486b75abb972002c6beb762d2b47b6473be3bd3282179&d=e181cd82745f88956e8098ec0182623bca30a2a51b7b03ead6e04ce9ca7400d5b4e921c5b4276d&g=e85d254ec8c5f58e7bf6e5729bd6b72f&id=6a842f9992ce7c01836a3d32&taste=0&supportDLTaste=0&mode=1&tr=manual&s=2219e793530239725c855f29f86f6035",
+   "来源": "OTA每日查询",
+   "状态": "ok",
+   "错误": ""
+  },
+  {
+   "品牌": "OPPO",
+   "机型": "OPPO Find X5",
+   "型号": "PFFM10",
+   "类型": "卡刷包",
+   "版本": "PFFM10_15.0.0.1901(CN01)",
+   "OTA版本": "PFFM10_11.H.41_4410_202607101956",
+   "安全补丁": "2026-06-01",
+   "地区": "CN",
+   "链接": "https://gauss-componentotacostmanual-cn.allawnfs.com/remove-1977982b04cdf852259d3735d6db0c79/component-ota/26/07/14/399ee82b558d463fb8a00f3ffb4dcedd.zip",
    "来源": "OTA每日查询",
    "状态": "ok",
    "错误": ""
