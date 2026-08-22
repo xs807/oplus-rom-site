@@ -152,11 +152,14 @@ async function refresh() {
       '<td>' + esc(u.ban_reason || '') + '</td>' +
       '<td>' + (u.banned
         ? '<button class="btn-success" data-act="unban" data-u="' + esc(u.username) + '">解封</button>'
-        : '<button class="btn-danger" data-act="ban" data-u="' + esc(u.username) + '">封禁</button>') + '</td>';
+        : '<button class="btn-danger" data-act="ban" data-u="' + esc(u.username) + '">封禁</button>') +
+      ' <button class="btn-ghost" data-act="pass" data-u="' + esc(u.username) + '">改密</button></td>';
     tbody.appendChild(tr);
   }
   tbody.querySelectorAll('button[data-act]').forEach(btn => {
-    btn.onclick = () => toggleBan(btn.dataset.act, btn.dataset.u);
+    btn.onclick = () => btn.dataset.act === 'pass'
+      ? changePass(btn.dataset.u)
+      : toggleBan(btn.dataset.act, btn.dataset.u);
   });
 }
 
@@ -173,6 +176,17 @@ function showListMsg(msg, err) {
 async function toggleBan(act, username) {
   const { status, data } = await call('/api/admin/' + act, { admin_user: adminUser, admin_token: token, username });
   showListMsg(data.ok ? (act === 'ban' ? '已封禁 ' + username : '已解封 ' + username) : (data.error || '失败'), !data.ok);
+  if (data.ok) refresh();
+}
+
+async function changePass(username) {
+  const pwd = prompt('修改「' + username + '」的密码：\n（不限制长度，改后该用户需重新登录）');
+  if (pwd === null) return;
+  if (!pwd) { showListMsg('新密码不能为空', true); return; }
+  const { status, data } = await call('/api/admin/change_pass', {
+    admin_user: adminUser, admin_token: token, username, new_password: pwd,
+  });
+  showListMsg(data.ok ? ('已修改 ' + username + ' 的密码') : (data.error || '修改失败'), !data.ok);
   if (data.ok) refresh();
 }
 

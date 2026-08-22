@@ -1,13 +1,15 @@
-import { json, readBody, loadUsers, saveUsers, nameOfToken, now } from './_lib.js';
+import { json, readBody, listUsers, findUserByToken, getUser, putUser, now, migrateLegacy } from './_lib.js';
 
 export async function onRequestPost({ request, env }) {
   const body = await readBody(request);
-  const users = await loadUsers(env);
-  const name = nameOfToken(users, body.token || '');
+  await migrateLegacy(env);
+  const name = await findUserByToken(env, body.token || '');
   if (!name) return json(401, { ok: false, error: '令牌无效' });
-  users[name].banned = true;
-  users[name].ban_reason = '检测到逆向工具（客户端自报）';
-  users[name].banned_at = now();
-  await saveUsers(env, users);
+  const u = await getUser(env, name);
+  if (!u) return json(401, { ok: false, error: '账户不存在' });
+  u.banned = true;
+  u.ban_reason = '检测到逆向工具（客户端自报）';
+  u.banned_at = now();
+  await putUser(env, name, u);
   return json(200, { ok: true });
 }

@@ -1,9 +1,10 @@
-import { json, loadUsers, nameOfToken } from './_lib.js';
+import { json, listUsers, nameOfToken, migrateLegacy } from './_lib.js';
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const token = url.searchParams.get('token') || '';
-  const users = await loadUsers(env);
+  await migrateLegacy(env);
+  const users = await listUsers(env);
   const name = nameOfToken(users, token);
   if (!name) return json(401, { ok: false, error: '令牌无效或已过期' });
   const u = users[name];

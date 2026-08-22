@@ -1,11 +1,13 @@
-import { json, readBody, loadUsers, isAdminOf } from '../_lib.js';
+import { json, readBody, getUser, listUsers, isAdminOf, migrateLegacy } from '../_lib.js';
 
 export async function onRequestPost({ request, env }) {
   const body = await readBody(request);
-  const users = await loadUsers(env);
-  if (!isAdminOf(users, body.admin_user, body.admin_token)) {
+  await migrateLegacy(env);
+  const admin = await getUser(env, body.admin_user);
+  if (!isAdminOf({ [body.admin_user]: admin }, body.admin_user, body.admin_token)) {
     return json(403, { ok: false, error: '管理员验证失败' });
   }
+  const users = await listUsers(env);
   const out = Object.entries(users).map(([name, u]) => ({
     username: name,
     banned: !!u.banned,
